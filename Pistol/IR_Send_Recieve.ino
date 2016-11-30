@@ -39,12 +39,20 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
       if(received[i] == 1){check = check + 1;}
       if(received[i] == 2){error = 1;}
     }
-    // Serial.println(check);
+    Serial.println(check);
     check = check >> 0 & B1;
-    // Serial.println(check);
-    if(check != received[17]){error = 1;}
+    Serial.println(check);
+    if(check != received[17]){error = 2;}
     if(error == 0){Serial.println("Valid Signal");}
-    else{Serial.println("ERROR");}
+    else{
+      Serial.println("ERROR");
+      if(error == 1){
+        Serial.println("Parity");
+      }
+      else if (error == 2){
+        Serial.println("Check");
+      }
+    }
     if(error == 0){interpritReceived();}
     digitalWrite(hitPin,LOW);
   }
@@ -190,3 +198,4 @@ void tagCode() { // Works out what the players tagger code (the code that is tra
   Serial.print(myParity);
   Serial.println();
 }
+
