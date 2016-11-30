@@ -3,7 +3,7 @@
 void playAmmo(){
   if(ammo == 0){playNoAmmo();}
   else{
-    for (long i = 0; i < ammo; i++) {
+    for (byte i = 0; i < ammo; i++) {
       delay(100);
       playTone(500, 100); 
     }
@@ -11,14 +11,23 @@ void playAmmo(){
 }
 
 //noise is played when character is alive and hit
-void playHit(){
+void playHit() {
   playTone(500, 500);  
 }
 
 //noise is played when there is no ammo left in the clip
-void playNoAmmo(){
+void playNoAmmo() {
   playTone(500, 100);
   playTone(1000, 100);  
+}
+
+//noise is played when there is no clips left
+void playNoClips() {
+  playTone(500, 100);
+  delay(100);
+  playTone(500, 100);
+  delay(100);
+  playTone(1000, 100);
 }
 
 //noise is played when the gun is fired
