@@ -139,7 +139,7 @@ void setup() {
   Serial.println(life);
   Serial.println("Ready....");
   Serial.println();
-
+/*
   //delay(500);
   FIRE = 1; triggers(); shoot(); delay(200);
   FIRE = 1; triggers(); shoot(); delay(200);
@@ -153,7 +153,7 @@ void setup() {
   FIRE = 1; triggers(); shoot(); delay(200);
   FIRE = 1; triggers(); shoot(); delay(200);
   FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
+  FIRE = 1; triggers(); shoot(); delay(200);*/
 }
 
 // Main loop most of the code is in the sub routines
@@ -184,7 +184,7 @@ void reload(){
       Serial.print(ammo);
       Serial.print(" / Clips: ");
       Serial.println(clips);
-      playAmmo();
+      playReload();
     }
   }
   RELOAD = 0;
