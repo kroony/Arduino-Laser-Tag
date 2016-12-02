@@ -77,7 +77,7 @@ void interpritReceived(){  // After a message has been received by the ReceiveIR
   if(received[7] == 1){player[hitNo] = player[hitNo] + 2;}
   if(received[8] == 1){player[hitNo] = player[hitNo] + 1;}
    
-  if(received[9] == 1){weapon[hitNo] = weapon[hitNo] + 4;}
+  if(received[9]  == 1){weapon[hitNo] = weapon[hitNo] + 4;}
   if(received[10] == 1){weapon[hitNo] = weapon[hitNo] + 2;}
   if(received[11] == 1){weapon[hitNo] = weapon[hitNo] + 1;} 
 

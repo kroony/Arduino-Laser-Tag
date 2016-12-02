@@ -16,24 +16,25 @@
 //
 
 
-
 // Digital IO's
-int triggerPin             = 3;      // Push button for primary fire. Low = pressed
-int reloadPin              = 13;     // Push button for reload function. Low = pressed
-int speakerPin             = 4;      // Direct output to piezo sounder/speaker
-int audioPin               = 9;      // Audio Trigger. Can be used to set off sounds recorded in the kind of electronics you can get in greetings card that play a custom message.
-int lifePin                = 6;      // An analogue output (PWM) level corresponds to remaining life. Use PWM pin: 3,5,6,9,10 or 11. Can be used to drive LED bar graphs. eg LM3914N
-int ammoPin                = 5;      // An analogue output (PWM) level corresponds to remaining ammunition. Use PWM pin: 3,5,6,9,10 or 11.
-int hitPin                 = 7;      // LED output pin used to indicate when the player has been hit.
-int IRtransmitPin          = 2;      // Primary fire mode IR transmitter pin: Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!! More info: http://j44industries.blogspot.com/2009/09/arduino-frequency-generation.html#more
-int IRtransmit2Pin         = 8;      // Secondary fire mode IR transmitter pin:  Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!!
-int IRreceivePin           = 12;     // The pin that incoming IR signals are read from
-int IRreceive2Pin          = 11;     // Allows for checking external sensors are attached as well as distinguishing between sensor locations (eg spotting head shots)
+byte triggerPin             = 3;      // Push button for primary fire. Low = pressed
+byte reloadPin              = 13;     // Push button for reload function. Low = pressed
+byte speakerPin             = 4;      // Direct output to piezo sounder/speaker
+byte audioPin               = 9;      // Audio Trigger. Can be used to set off sounds recorded in the kind of electronics you can get in greetings card that play a custom message.
+byte lifePin                = 6;      // An analogue output (PWM) level corresponds to remaining life. Use PWM pin: 3,5,6,9,10 or 11. Can be used to drive LED bar graphs. eg LM3914N
+byte ammoPin                = 5;      // An analogue output (PWM) level corresponds to remaining ammunition. Use PWM pin: 3,5,6,9,10 or 11.
+byte hitPin                 = 7;      // LED output pin used to indicate when the player has been hit.
+byte IRtransmitPin          = 2;      // Primary fire mode IR transmitter pin: Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!! More info: http://j44industries.blogspot.com/2009/09/arduino-frequency-generation.html#more
+byte IRtransmit2Pin         = 8;      // Secondary fire mode IR transmitter pin:  Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!!
+byte IRreceivePin           = 12;     // The pin that incoming IR signals are read from
+byte IRreceive2Pin          = 11;     // Allows for checking external sensors are attached as well as distinguishing between sensor locations (eg spotting head shots)
+byte muzzelLedPin           = 10;     // Flashes when a shot is fired simulating muzzel flash
+
 // Minimum gun requirements: trigger, receiver, IR led, hit LED.
 
 // Player and Game details
 byte myTeamID               = 1;      // 1-7 (0 = system message)
-byte myPlayerID             = 2;      // Player ID
+byte myPlayerID             = 2;      // 1 - 31 (0 = team base) 
 byte myGameID               = 0;      // Interprited by configureGane subroutine; allows for quick change of game types.
 byte myWeaponID             = 0;      // Deffined by gameType and configureGame subroutine.
 byte myWeaponHP             = 0;      // Deffined by gameType and configureGame subroutine.
@@ -44,13 +45,14 @@ byte automatic              = 0;      // Deffined by gameType and configureGame 
 byte automatic2             = 0;      // Deffined by gameType and configureGame subroutine. Secondary fire auto?
 
 //Incoming signal Details
-int received[18];                    // Received data: received[0] = which sensor, received[1] - [17] byte1 byte2 parity (Miles Tag structure)
-int check                  = 0;      // Variable used in parity checking
+int received[18];                     // Received data: received[0] = which sensor, received[1] - [17] byte1 byte2 parity (Miles Tag structure)
+int check                  = 0;       // Variable used in parity checking
 
 // Stats
 byte ammo                   = 0;      // Current ammunition
 byte clips                  = 0;
 byte life                   = 0;      // Current life
+bool alive                  = true;   // set alive
 
 // Code Variables
 int timeOut                 = 0;      // Deffined in frequencyCalculations (IRpulse + 50)
@@ -103,19 +105,16 @@ void setup() {
   pinMode(IRtransmit2Pin, OUTPUT);
   pinMode(IRreceivePin, INPUT);
   pinMode(IRreceive2Pin, INPUT);
+  pinMode(muzzelLedPin, OUTPUT);
  
   frequencyCalculations();   // Calculates pulse lengths etc for desired frequency
   configureGame();           // Look up and configure game details
   tagCode();                 // Based on game details etc works out the data that will be transmitted when a shot is fired
  
- 
   //digitalWrite(triggerPin, HIGH);      // Not really needed if your circuit has the correct pull up resistors already but doesn't harm
   //digitalWrite(reloadPin, HIGH);     // Not really needed if your circuit has the correct pull up resistors already but doesn't harm
  
-  for (int i = 1;i < 254;i++) { // Loop plays start up noise
-    //analogWrite(ammoPin, i); //light ammo lights in test
-    playTone((3000-9*i), 2);
-  } 
+  revive();
  
   // Next 4 lines initialise the display LEDs
   //analogWrite(ammoPin, ((int) ammo));
@@ -172,6 +171,15 @@ void loop(){
 
 // SUB ROUTINES
 
+void revive() {
+  for (int i = 1;i < 254;i++) { // Loop plays start up noise
+    //analogWrite(ammoPin, i); //light ammo lights in test
+    playTone((3000-9*i), 2);
+  } 
+  alive = true;
+  life = maxLife;
+}
+
 void reload(){
   if(RELOAD == 1){
     if(clips < 1){
@@ -194,6 +202,7 @@ void reload(){
 void shoot() {
   if(FIRE == 1){ // Has the trigger been pressed?
     Serial.print("Shooting...");
+    digitalWrite(muzzelLedPin, HIGH);
     sendPulse(IRtransmitPin, 4); // Transmit Header pulse, send pulse subroutine deals with the details
     delayMicroseconds(IRpulse);
  
@@ -228,6 +237,8 @@ void shoot() {
     Serial.print(" Ammo:");
     Serial.println(ammo);
 
+    digitalWrite(muzzelLedPin, LOW);
+
   }
 
   /*if(FIRE == 2){ // Where a secondary fire mode would be added
@@ -257,7 +268,7 @@ void triggers() { // Checks to see if the triggers have been presses
     FIRE = 2;
   }*/
   if(FIRE == 1 || FIRE == 2){
-    if(life < 1){FIRE = 0; dead();}
+    if(!alive){FIRE = 0; dead();}
     if(ammo < 1){FIRE = 0; noAmmo();}
     // Fire rate code to be added here  
   }
@@ -270,7 +281,7 @@ void triggers() { // Checks to see if the triggers have been presses
     Serial.println("Reload press");
   }
   if(RELOAD == 1){
-    if(life < 1){RELOAD = 0; dead();}
+    if(!alive){RELOAD = 0; dead();}
     if(clips < 1){RELOAD = 0; noClips();}
   }
  
@@ -279,21 +290,22 @@ void triggers() { // Checks to see if the triggers have been presses
 void dead() { // void determines what the tagger does when it is out of lives
   // Makes a few noises and flashes some lights
   for (int i = 1;i < 254;i++) {
-    analogWrite(ammoPin, i);
+    //analogWrite(ammoPin, i);
     playTone((1000+9*i), 2);
   } 
-  analogWrite(ammoPin, ((int) ammo));
-  analogWrite(lifePin, ((int) life));
+  alive = false;
+  //analogWrite(ammoPin, ((int) ammo));
+  //analogWrite(lifePin, ((int) life));
   Serial.println("DEAD");
  
-  for (int i=0; i<10; i++) {
+  /*for (int i=0; i<10; i++) {
    analogWrite(ammoPin, 255);
    digitalWrite(hitPin,HIGH);
    delay (500);
    analogWrite(ammoPin, 0);
    digitalWrite(hitPin,LOW);
    delay (500);
-  }
+  }*/
 }
 
 void noClips() { // Make some noise and flash some lights when out of clips
@@ -325,7 +337,7 @@ void hit() { // Make some noise and flash some lights when you get shot
   playHit();
   if(life <= 0){dead();}
   digitalWrite(hitPin,LOW);
-  lifeDisplay();
+  //lifeDisplay();
 }
 
 
