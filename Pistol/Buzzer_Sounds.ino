@@ -10,6 +10,16 @@ void playAmmo(){
   }
 }
 
+void playReload() {
+  for (int i = 100;i > 0;i--) {
+    playTone((3000-9*i), 2);
+  } 
+  delay(50);
+  for (int i = 1;i < 100;i++) {
+    playTone((3000-9*i), 2);
+  } 
+}
+
 //noise is played when character is alive and hit
 void playHit() {
   playTone(500, 500);  
