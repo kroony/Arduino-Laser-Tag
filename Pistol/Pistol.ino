@@ -15,7 +15,6 @@
 // If you have code improvements or additions please go to http://duinotag.blogspot.com
 //
 
-
 // Digital IO's
 byte triggerPin             = 3;      // Push button for primary fire. Low = pressed
 byte reloadPin              = 13;     // Push button for reload function. Low = pressed
@@ -33,25 +32,25 @@ byte muzzelLedPin           = 10;     // Flashes when a shot is fired simulating
 // Minimum gun requirements: trigger, receiver, IR led, hit LED.
 
 // Player and Game details
-byte myTeamID               = 1;      // 1-7 (0 = system message)
-byte myPlayerID             = 2;      // 1 - 31 (0 = team base) 
+byte myTeamID               = 2;      // 1-7 (0 = system message)
+byte myPlayerID             = 3;      // 1 - 31 (0 = team base) 
 byte myGameID               = 0;      // Interprited by configureGane subroutine; allows for quick change of game types.
 byte myWeaponID             = 0;      // Deffined by gameType and configureGame subroutine.
-byte myWeaponHP             = 0;      // Deffined by gameType and configureGame subroutine.
+byte myWeaponDamage         = 0;      // Deffined by gameType and configureGame subroutine.
 byte maxAmmo                = 0;      // Deffined by gameType and configureGame subroutine.
 byte maxAmmoClips           = 0;      // Deffined by gameType and configureGame subroutine.
-byte maxLife                = 0;      // Deffined by gameType and configureGame subroutine.
+byte maxHp                  = 0;      // Deffined by gameType and configureGame subroutine.
 byte automatic              = 0;      // Deffined by gameType and configureGame subroutine. Automatic fire 0 = Semi Auto, 1 = Fully Auto.
 byte automatic2             = 0;      // Deffined by gameType and configureGame subroutine. Secondary fire auto?
 
 //Incoming signal Details
 int received[18];                     // Received data: received[0] = which sensor, received[1] - [17] byte1 byte2 parity (Miles Tag structure)
-int check                  = 0;       // Variable used in parity checking
+int check                   = 0;      // Variable used in parity checking
 
 // Stats
 byte ammo                   = 0;      // Current ammunition
 byte clips                  = 0;
-byte life                   = 0;      // Current life
+byte hp                     = 0;      // Current hp
 bool alive                  = true;   // set alive
 
 // Code Variables
@@ -64,30 +63,31 @@ byte reloadRead             = 0;      // Trigger 2 Reading (For reload)
 byte lastReloadRead         = 0;      // Last Trigger 2 Reading (For secondary fire)
 
 // Signal Properties
-int IRpulse                = 600;    // Basic pulse duration of 600uS MilesTag standard 4*IRpulse for header bit, 2*IRpulse for 1, 1*IRpulse for 0.
-int IRfrequency            = 36;     // Frequency in kHz Standard values are: 38kHz, 40kHz. Choose dependant on your receiver characteristics
-int IRt                    = 0;      // LED on time to give correct transmission frequency, calculated in setup.
-int IRpulses               = 0;      // Number of oscillations needed to make a full IRpulse, calculated in setup.
-int header                 = 4;      // Header lenght in pulses. 4 = Miles tag standard
-int maxSPS                 = 10;     // Maximum Shots Per Seconds. Not yet used.
-int TBS                    = 0;      // Time between shots. Not yet used.
+int IRpulse                 = 600;    // Basic pulse duration of 600uS MilesTag standard 4*IRpulse for header bit, 2*IRpulse for 1, 1*IRpulse for 0.
+int IRfrequency             = 38;     // Frequency in kHz Standard values are: 38kHz, 40kHz. Choose dependant on your receiver characteristics
+int IRt                     = 0;      // LED on time to give correct transmission frequency, calculated in setup.
+int IRpulses                = 0;      // Number of oscillations needed to make a full IRpulse, calculated in setup.
+int header                  = 4;      // Header lenght in pulses. 4 = Miles tag standard
+int maxSPS                  = 10;     // Maximum Shots Per Seconds. Not yet used.
+int TBS                     = 0;      // Time between shots. Not yet used.
 
 // Transmission data
-int byte1[8];                        // String for storing byte1 of the data which gets transmitted when the player fires.
-int byte2[8];                        // String for storing byte1 of the data which gets transmitted when the player fires.
-int myParity               = 0;      // String for storing parity of the data which gets transmitted when the player fires.
+int byte1[8];                         // String for storing byte1 of the data which gets transmitted when the player fires.
+int byte2[8];                         // String for storing byte1 of the data which gets transmitted when the player fires.
+int myParity                = 0;      // String for storing parity of the data which gets transmitted when the player fires.
 
 // Received data
-int memory                 = 10;     // Number of signals to be recorded: Allows for the game data to be reviewed after the game, no provision for transmitting / accessing it yet though.
-int hitNo                  = 0;      // Hit number
+int memory                  = 25;     // Number of signals to be recorded: Allows for the game data to be reviewed after the game, no provision for transmitting / accessing it yet though.
+int hitNo                   = 0;      // Hit number
 // Byte1
-int player[10];                      // Array must be as large as memory
-int team[10];                        // Array must be as large as memory
+int player[25];                      // Array must be as large as memory
+int team[25];                        // Array must be as large as memory
 // Byte2
-int weapon[10];                      // Array must be as large as memory
-int hp[10];                          // Array must be as large as memory
-int parity[10];                      // Array must be as large as memory
+int weapon[25];                      // Array must be as large as memory
+int damage[25];                          // Array must be as large as memory
+int parity[25];                      // Array must be as large as memory
 
+long historyCount           = 0;
 
 void setup() {
   // Serial coms set up to help with debugging.
@@ -118,46 +118,28 @@ void setup() {
  
   // Next 4 lines initialise the display LEDs
   //analogWrite(ammoPin, ((int) ammo));
-  //analogWrite(lifePin, ((int) life));
+  //analogWrite(lifePin, ((int) hp));
   //lifeDisplay();
   //ammoDisplay();
 
   //output gun data
   Serial.print("Team: ");           Serial.println(myTeamID);
   Serial.print("Player: ");         Serial.println(myPlayerID);
-  Serial.print("myWeaponHP: ");     Serial.println(myWeaponHP);
+  Serial.print("myWeaponHP: ");     Serial.println(myWeaponDamage);
   Serial.print("maxAmmo: ");        Serial.println(maxAmmo);
   Serial.print("maxAmmoClips: ");   Serial.println(maxAmmoClips);
-  Serial.print("maxLife: ");        Serial.println(maxLife);
+  Serial.print("maxHP: ");          Serial.println(maxHp);
   Serial.println();
-  Serial.print("Ammo: ");
-  Serial.print(ammo);
-  Serial.print(" Clips: ");
-  Serial.print(clips);
-  Serial.print(" HP: ");
-  Serial.println(life);
+  Serial.print("Ammo: ");           Serial.print(ammo);
+  Serial.print(" Clips: ");         Serial.print(clips);
+  Serial.print(" HP: ");            Serial.println(hp);
   Serial.println("Ready....");
   Serial.println();
-/*
-  //delay(500);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);
-  FIRE = 1; triggers(); shoot(); delay(200);*/
 }
 
 // Main loop most of the code is in the sub routines
 void loop(){
-  //receiveIR();
+  receiveIR();
   if(FIRE != 0){
     shoot();
     //ammoDisplay();//commented as there are no lights
@@ -166,6 +148,14 @@ void loop(){
     //ammoDisplay();//commented as there are no lights
   }
   triggers();
+
+  //debugging history info
+  historyCount++;
+  if(historyCount >= 500000) {
+    outputCombatHistory();
+    historyCount = 0;
+  }
+  
 }
 
 
@@ -177,7 +167,7 @@ void revive() {
     playTone((3000-9*i), 2);
   } 
   alive = true;
-  life = maxLife;
+  hp = maxHp;
 }
 
 void reload(){
@@ -284,7 +274,6 @@ void triggers() { // Checks to see if the triggers have been presses
     if(!alive){RELOAD = 0; dead();}
     if(clips < 1){RELOAD = 0; noClips();}
   }
- 
 }
 
 void dead() { // void determines what the tagger does when it is out of lives
@@ -295,7 +284,7 @@ void dead() { // void determines what the tagger does when it is out of lives
   } 
   alive = false;
   //analogWrite(ammoPin, ((int) ammo));
-  //analogWrite(lifePin, ((int) life));
+  //analogWrite(lifePin, ((int) hp));
   Serial.println("DEAD");
  
   /*for (int i=0; i<10; i++) {
@@ -331,15 +320,23 @@ void noAmmo() { // Make some noise and flash some lights when out of ammo
 
 void hit() { // Make some noise and flash some lights when you get shot
   digitalWrite(hitPin,HIGH);
-  life = life - hp[hitNo];
+  //check we have the HP to loose
+  if(hp > 0) {
+    if(hp >= damage[hitNo]) { //we have enough life to take the hit
+      hp = hp - damage[hitNo];    
+    } else {//we dont have enough life left to soak the hit so we will just go to 0 life
+      hp = 0;
+    }
+  } else { //we are already dead dont deduct further life else we will loop to having 256 life
+    dead();
+  }
+  
   Serial.print("HP: ");
-  Serial.println(life);
+  Serial.println(hp);
   playHit();
-  if(life <= 0){dead();}
   digitalWrite(hitPin,LOW);
   //lifeDisplay();
 }
-
 
 
 void ammoDisplay() { // Updates Ammo LED output
@@ -350,11 +347,36 @@ void ammoDisplay() { // Updates Ammo LED output
   analogWrite(ammoPin, ((int) ammoF));
 }
 
+
 void lifeDisplay() { // Updates Ammo LED output
-  float lifeF;
-  lifeF = (260/maxLife) * life;
-  if(lifeF <= 0){lifeF = 0;}
-  if(lifeF > 255){lifeF = 255;}
-  analogWrite(lifePin, ((int) lifeF));
+  float hpF;
+  hpF = (260/maxHp) * hp;
+  if(hpF <= 0){hpF = 0;}
+  if(hpF > 255){hpF = 255;}
+  analogWrite(lifePin, ((int) hpF));
 } 
+
+
+void outputCombatHistory() {
+  Serial.println("");
+  Serial.println("Combat History");
+  
+  for(int i = 0; i <= hitNo -1; i++) {
+    Serial.print("Hit No: ");
+    Serial.print(i);
+    Serial.print("  Player: ");
+    Serial.print(player[i]);
+    Serial.print("  Team: ");
+    Serial.print(team[i]);
+    Serial.print("  Weapon: ");
+    Serial.print(weapon[i]);
+    Serial.print("  Damage: ");
+    Serial.print(damage[i]);
+    Serial.print("  Parity: ");
+    Serial.println(parity[i]);
+  }
+
+  Serial.println("End Combat History");
+  Serial.println("");
+}
 
