@@ -2,7 +2,7 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
   int error = 0;
  
   if(digitalRead(IRreceivePin) == LOW){    // If the receive pin is low a signal is being received.
-    digitalWrite(hitPin,HIGH);
+    //digitalWrite(hitPin,HIGH);
     if(digitalRead(IRreceive2Pin) == LOW){ // Is the incoming signal being received by the head sensors?
       received[0] = 1;
     }
@@ -13,8 +13,9 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
     while(digitalRead(IRreceivePin) == LOW){
     }
     for(int i = 1; i <= 17; i++) {                        // Repeats several times to make sure the whole signal has been received
-      received[i] = pulseIn(IRreceivePin, LOW, timeOut);  // pulseIn command waits for a pulse and then records its duration in microseconds.
-    }
+      //received[i] = pulseIn(IRreceivePin, LOW, timeOut);  // pulseIn command waits for a pulse and then records its duration in microseconds.
+      received[i] = pulseIn(IRreceivePin, LOW);  // pulseIn command waits for a pulse and then records its duration in microseconds.
+    } 
    
     Serial.print("sensor: ");                            // Prints if it was a head shot or not.
     Serial.print(received[0]); 
@@ -39,9 +40,7 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
       if(received[i] == 1){check = check + 1;}
       if(received[i] == 2){error = 1;}
     }
-    Serial.println(check);
     check = check >> 0 & B1;
-    Serial.println(check);
     if(check != received[17]){error = 2;}
     if(error == 0){Serial.println("Valid Signal");}
     else{
@@ -64,7 +63,7 @@ void interpritReceived(){  // After a message has been received by the ReceiveIR
   team[hitNo] = 0;
   player[hitNo] = 0;
   weapon[hitNo] = 0;
-  hp[hitNo] = 0;
+  damage[hitNo] = 0;
   // Next few lines Effectivly converts the binary data into decimal
   // Im sure there must be a much more efficient way of doing this
   if(received[1] == 1){team[hitNo] = team[hitNo] + 4;}
@@ -81,11 +80,11 @@ void interpritReceived(){  // After a message has been received by the ReceiveIR
   if(received[10] == 1){weapon[hitNo] = weapon[hitNo] + 2;}
   if(received[11] == 1){weapon[hitNo] = weapon[hitNo] + 1;} 
 
-  if(received[12] == 1){hp[hitNo] = hp[hitNo] + 16;}
-  if(received[13] == 1){hp[hitNo] = hp[hitNo] + 8;}
-  if(received[14] == 1){hp[hitNo] = hp[hitNo] + 4;}
-  if(received[15] == 1){hp[hitNo] = hp[hitNo] + 2;}
-  if(received[16] == 1){hp[hitNo] = hp[hitNo] + 1;}
+  if(received[12] == 1){damage[hitNo] = damage[hitNo] + 16;}
+  if(received[13] == 1){damage[hitNo] = damage[hitNo] + 8;}
+  if(received[14] == 1){damage[hitNo] = damage[hitNo] + 4;}
+  if(received[15] == 1){damage[hitNo] = damage[hitNo] + 2;}
+  if(received[16] == 1){damage[hitNo] = damage[hitNo] + 1;}
    
   parity[hitNo] = received[17];
 
@@ -97,18 +96,20 @@ void interpritReceived(){  // After a message has been received by the ReceiveIR
   Serial.print(team[hitNo]);
   Serial.print("  Weapon: ");
   Serial.print(weapon[hitNo]);
-  Serial.print("  HP: ");
-  Serial.print(hp[hitNo]);
+  Serial.print("  Damage: ");
+  Serial.print(damage[hitNo]);
   Serial.print("  Parity: ");
   Serial.println(parity[hitNo]);
  
  
-  //This is probably where more code should be added to expand the game capabilities at the moment the code just checks that the received data was not a system message and deducts a life if it wasn't.
-  if (player[hitNo] != 0){hit();}
-  hitNo++ ;
+  if (team[hitNo] != myTeamID && player[hitNo] != myPlayerID) { // Make sure i have not hit myself
+    
+    ////This is probably where more code should be added to expand the game capabilities at the moment the code just checks that the received data was not a system message and deducts a life if it wasn't.
+    if (player[hitNo] != 0){hit();}
+    hitNo++ ;
+    
+  }
 }
-
-
 
 void sendPulse(int pin, int length){ // importing variables like this allows for secondary fire modes etc.
 // This void genertates the carrier frequency for the information to be transmitted
@@ -136,7 +137,6 @@ void frequencyCalculations() { // Works out all the timings needed to give the c
 
   Serial.print("Oscilation time period /2: ");
   Serial.println(IRt);
-  Serial.print("Pulses: ");
   Serial.println(IRpulses);
   timeOut = IRpulse + 50; // Adding 50 to the expected pulse time gives a little margin for error on the pulse read time out value
 }
@@ -158,11 +158,11 @@ void tagCode() { // Works out what the players tagger code (the code that is tra
   byte2[1] = myWeaponID >> 1 & B1;
   byte2[2] = myWeaponID >> 0 & B1;
 
-  byte2[3] = myWeaponHP >> 4 & B1;
-  byte2[4] = myWeaponHP >> 3 & B1;
-  byte2[5] = myWeaponHP >> 2 & B1;
-  byte2[6] = myWeaponHP >> 1 & B1;
-  byte2[7] = myWeaponHP >> 0 & B1;
+  byte2[3] = myWeaponDamage >> 4 & B1;
+  byte2[4] = myWeaponDamage >> 3 & B1;
+  byte2[5] = myWeaponDamage >> 2 & B1;
+  byte2[6] = myWeaponDamage >> 1 & B1;
+  byte2[7] = myWeaponDamage >> 0 & B1;
 
   myParity = 0;
   for (int i=0; i<8; i++) {
