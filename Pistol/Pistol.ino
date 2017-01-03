@@ -16,20 +16,23 @@
 //
 
 // Digital IO's
-byte triggerPin             = 3;      // Push button for primary fire. Low = pressed
-byte reloadPin              = 13;     // Push button for reload function. Low = pressed
-byte speakerPin             = 4;      // Direct output to piezo sounder/speaker
-byte audioPin               = 9;      // Audio Trigger. Can be used to set off sounds recorded in the kind of electronics you can get in greetings card that play a custom message.
-byte lifePin                = 6;      // An analogue output (PWM) level corresponds to remaining life. Use PWM pin: 3,5,6,9,10 or 11. Can be used to drive LED bar graphs. eg LM3914N
-byte ammoPin                = 5;      // An analogue output (PWM) level corresponds to remaining ammunition. Use PWM pin: 3,5,6,9,10 or 11.
-byte hitPin                 = 7;      // LED output pin used to indicate when the player has been hit.
+//pin 0
+//pin 1
 byte IRtransmitPin          = 2;      // Primary fire mode IR transmitter pin: Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!! More info: http://j44industries.blogspot.com/2009/09/arduino-frequency-generation.html#more
+byte triggerPin             = 3;      // Push button for primary fire. Low = pressed
+byte speakerPin             = 4;      // Direct output to piezo sounder/speaker
+//byte ammoPin                = 5;      // An analogue output (PWM) level corresponds to remaining ammunition. Use PWM pin: 3,5,6,9,10 or 11.  //Commented out cause no lights
+//byte lifePin                = 6;      // An analogue output (PWM) level corresponds to remaining life. Use PWM pin: 3,5,6,9,10 or 11. Can be used to drive LED bar graphs. eg LM3914N ////Commented out cause no lights
+//byte hitPin                 = 7;      // LED output pin used to indicate when the player has been hit. //commented out cause no lights
 byte IRtransmit2Pin         = 8;      // Secondary fire mode IR transmitter pin:  Use pins 2,4,7,8,12 or 13. DO NOT USE PWM pins!!
-byte IRreceivePin           = 12;     // The pin that incoming IR signals are read from
-byte IRreceive2Pin          = 11;     // Allows for checking external sensors are attached as well as distinguishing between sensor locations (eg spotting head shots)
+byte audioPin               = 9;      // Audio Trigger. Can be used to set off sounds recorded in the kind of electronics you can get in greetings card that play a custom message.
 byte muzzelLedPin           = 10;     // Flashes when a shot is fired simulating muzzel flash
+byte IRreceive2Pin          = 11;     // Allows for checking external sensors are attached as well as distinguishing between sensor locations (eg spotting head shots)
+byte IRreceivePin           = 12;     // The pin that incoming IR signals are read from
+byte reloadPin              = 13;     // Push button for reload function. Low = pressed
 
-// Minimum gun requirements: trigger, receiver, IR led, hit LED.
+
+// Minimum gun requirements: trigger, receiver, IR led, piezo speaker.
 
 // Player and Game details
 byte myTeamID               = 1;      // 1-7 (0 = system message)
@@ -52,6 +55,7 @@ byte ammo                   = 0;      // Current ammunition
 byte clips                  = 0;
 byte hp                     = 0;      // Current hp
 bool alive                  = true;   // set alive
+long shotFired              = 0;      // Count of shots fired, could be used to calc accuracy ect later
 
 // Code Variables
 int timeOut                 = 0;      // Deffined in frequencyCalculations (IRpulse + 50)
@@ -98,9 +102,6 @@ void setup() {
   pinMode(reloadPin, INPUT);
   pinMode(speakerPin, OUTPUT);
   pinMode(audioPin, OUTPUT);
-  pinMode(lifePin, OUTPUT);
-  pinMode(ammoPin, OUTPUT);
-  pinMode(hitPin, OUTPUT);
   pinMode(IRtransmitPin, OUTPUT);
   pinMode(IRtransmit2Pin, OUTPUT);
   pinMode(IRreceivePin, INPUT);
@@ -137,17 +138,17 @@ void setup() {
   Serial.println();
 }
 
-// Main loop most of the code is in the sub routines
+
 void loop(){
   receiveIR();
-  if(FIRE != 0){
+  
+  if(FIRE != 0) {
     shoot();
-    //ammoDisplay();//commented as there are no lights
-  }else if(RELOAD !=0){
+  } else if(RELOAD !=0) {
     reload();
-    //ammoDisplay();//commented as there are no lights
   }
-  triggers();
+  
+  buttonCheck();
 
   //debugging history info
   /*historyCount++;
@@ -162,73 +163,44 @@ void loop(){
 // SUB ROUTINES
 
 void revive() {
-  for (int i = 1;i < 254;i++) { // Loop plays start up noise
-    //analogWrite(ammoPin, i); //light ammo lights in test
-    playTone((3000-9*i), 2);
-  } 
+  playRevive();
   alive = true;
   hp = maxHp;
 }
 
 void reload(){
   if(RELOAD == 1){
-    if(clips < 1){
-      //play out of clips error
+    if(clips == 0){//check we have enough clips
       noClips();
     } else {
       ammo = maxAmmo;
       clips = clips - 1;
+      
       Serial.print("Reloading... Ammo: ");
       Serial.print(ammo);
       Serial.print(" / Clips: ");
       Serial.println(clips);
+      
       playReload();
     }
   }
+  
   RELOAD = 0;
   FIRE = 0;
 }
 
 void shoot() {
   if(FIRE == 1){ // Has the trigger been pressed?
+    digitalWrite(muzzelLedPin, HIGH); //turn muzzle flash light on
+    shotFired++; //increase shot count
     Serial.print("Shooting...");
-    digitalWrite(muzzelLedPin, HIGH);
-    sendPulse(IRtransmitPin, 4); // Transmit Header pulse, send pulse subroutine deals with the details
-    delayMicroseconds(IRpulse);
- 
-    for(int i = 0; i < 8; i++) { // Transmit Byte1
-      if(byte1[i] == 1){
-        sendPulse(IRtransmitPin, 1);
-        //Serial.print("1 ");
-      }
-      //else{Serial.print("0 ");}
-      sendPulse(IRtransmitPin, 1);
-      delayMicroseconds(IRpulse);
-    }
-
-    for(int i = 0; i < 8; i++) { // Transmit Byte2
-      if(byte2[i] == 1){
-        sendPulse(IRtransmitPin, 1);
-       // Serial.print("1 ");
-      }
-      //else{Serial.print("0 ");}
-      sendPulse(IRtransmitPin, 1);
-      delayMicroseconds(IRpulse);
-    }
-    
-    if(myParity == 1){ // Parity
-      sendPulse(IRtransmitPin, 1);
-    }
-    sendPulse(IRtransmitPin, 1);
-    delayMicroseconds(IRpulse);
-    Serial.print("success");
-    playGunShot();//buzzerSound
+    fireIR();
+    playGunShot();
     ammo = ammo - 1;
     Serial.print(" Ammo:");
     Serial.println(ammo);
 
-    digitalWrite(muzzelLedPin, LOW);
-
+    digitalWrite(muzzelLedPin, LOW); //turn muzzle flash light off
   }
 
   /*if(FIRE == 2){ // Where a secondary fire mode would be added
@@ -241,7 +213,7 @@ void shoot() {
   FIRE = 0;
 }
 
-void triggers() { // Checks to see if the triggers have been presses
+void buttonCheck() { // Checks to see if the buttons have been presses
   
   //Trigger
   lastTriggerRead = triggerRead;       // Records previous state. trigger button
@@ -277,30 +249,14 @@ void triggers() { // Checks to see if the triggers have been presses
 }
 
 void dead() { // void determines what the tagger does when it is out of lives
-  // Makes a few noises and flashes some lights
-  for (int i = 1;i < 254;i++) {
-    //analogWrite(ammoPin, i);
-    playTone((1000+9*i), 2);
-  } 
+  playDead();
   alive = false;
-  //analogWrite(ammoPin, ((int) ammo));
-  //analogWrite(lifePin, ((int) hp));
+  
   Serial.println("DEAD");
- 
-  /*for (int i=0; i<10; i++) {
-   analogWrite(ammoPin, 255);
-   digitalWrite(hitPin,HIGH);
-   delay (500);
-   analogWrite(ammoPin, 0);
-   digitalWrite(hitPin,LOW);
-   delay (500);
-  }*/
 }
 
 void noClips() { // Make some noise and flash some lights when out of clips
-  digitalWrite(hitPin,HIGH);
   playNoClips();
-  digitalWrite(hitPin,LOW);
   Serial.print("OUT OF CLIPS... Ammo: ");
   Serial.print(ammo);
   Serial.print(" / Clips:");
@@ -308,9 +264,7 @@ void noClips() { // Make some noise and flash some lights when out of clips
 }
 
 void noAmmo() { // Make some noise and flash some lights when out of ammo
-  digitalWrite(hitPin,HIGH);
   playNoAmmo();
-  digitalWrite(hitPin,LOW);
   Serial.print("OUT OF AMMO... Ammo: ");
   Serial.print(ammo);
   Serial.print(" / Clips:");
@@ -319,43 +273,21 @@ void noAmmo() { // Make some noise and flash some lights when out of ammo
 
 
 void hit() { // Make some noise and flash some lights when you get shot
-  digitalWrite(hitPin,HIGH);
-  //check we have the HP to loose
-  if(hp > 0) {
+  if(hp > 0) { //check we have the HP to loose
     if(hp >= damage[hitNo]) { //we have enough life to take the hit
       hp = hp - damage[hitNo];    
     } else {//we dont have enough life left to soak the hit so we will just go to 0 life
       hp = 0;
     }
-  } else { //we are already dead dont deduct further life else we will loop to having 256 life
+    playHit();
+  } else { //we are already dead dont deduct further life else we will loop to having 255 life
     dead();
   }
   
   Serial.print("HP: ");
   Serial.println(hp);
-  playHit();
-  digitalWrite(hitPin,LOW);
-  //lifeDisplay();
+  
 }
-
-
-void ammoDisplay() { // Updates Ammo LED output
-  float ammoF;
-  ammoF = (260/maxAmmo) * ammo;
-  if(ammoF <= 0){ammoF = 0;}
-  if(ammoF > 255){ammoF = 255;}
-  analogWrite(ammoPin, ((int) ammoF));
-}
-
-
-void lifeDisplay() { // Updates Ammo LED output
-  float hpF;
-  hpF = (260/maxHp) * hp;
-  if(hpF <= 0){hpF = 0;}
-  if(hpF > 255){hpF = 255;}
-  analogWrite(lifePin, ((int) hpF));
-} 
-
 
 void outputCombatHistory() {
   Serial.println("");
