@@ -14,4 +14,31 @@ Player 3 - Repair Item - any player
 Player 0 - Respawn
 Player 1 - Full Health
 Player 2 - Full Ammo
-Player 3 - Repair Item    */         
+Player 3 - Repair Item    
+
+
+             Team 2   --BLUE--
+Player 0 - Respawn
+Player 1 - Full Health
+Player 2 - Full Ammo
+Player 3 - Repair Item    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/         
