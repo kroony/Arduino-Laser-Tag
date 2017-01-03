@@ -32,8 +32,8 @@ byte muzzelLedPin           = 10;     // Flashes when a shot is fired simulating
 // Minimum gun requirements: trigger, receiver, IR led, hit LED.
 
 // Player and Game details
-byte myTeamID               = 2;      // 1-7 (0 = system message)
-byte myPlayerID             = 3;      // 1 - 31 (0 = team base) 
+byte myTeamID               = 1;      // 1-7 (0 = system message)
+byte myPlayerID             = 1;      // 1 - 31 (0 = team base) 
 byte myGameID               = 0;      // Interprited by configureGane subroutine; allows for quick change of game types.
 byte myWeaponID             = 0;      // Deffined by gameType and configureGame subroutine.
 byte myWeaponDamage         = 0;      // Deffined by gameType and configureGame subroutine.
@@ -150,11 +150,11 @@ void loop(){
   triggers();
 
   //debugging history info
-  historyCount++;
+  /*historyCount++;
   if(historyCount >= 500000) {
     outputCombatHistory();
     historyCount = 0;
-  }
+  }*/
   
 }
 
