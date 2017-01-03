@@ -2,7 +2,6 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
   int error = 0;
  
   if(digitalRead(IRreceivePin) == LOW){    // If the receive pin is low a signal is being received.
-    //digitalWrite(hitPin,HIGH);
     if(digitalRead(IRreceive2Pin) == LOW){ // Is the incoming signal being received by the head sensors?
       received[0] = 1;
     }
@@ -53,7 +52,7 @@ void receiveIR() { // Void checks for an incoming signal and decodes it if it se
       }
     }
     if(error == 0){interpritReceived();}
-    digitalWrite(hitPin,LOW);
+    
   }
 }
 
@@ -109,6 +108,38 @@ void interpritReceived(){  // After a message has been received by the ReceiveIR
     hitNo++ ;
     
   }
+}
+
+void fireIR () {
+  sendPulse(IRtransmitPin, 4); // Transmit Header pulse, send pulse subroutine deals with the details
+  delayMicroseconds(IRpulse);
+
+  for(int i = 0; i < 8; i++) { // Transmit Byte1
+    if(byte1[i] == 1){
+      sendPulse(IRtransmitPin, 1);
+      //Serial.print("1 ");
+    }
+    //else{Serial.print("0 ");}
+    sendPulse(IRtransmitPin, 1);
+    delayMicroseconds(IRpulse);
+  }
+
+  for(int i = 0; i < 8; i++) { // Transmit Byte2
+    if(byte2[i] == 1){
+      sendPulse(IRtransmitPin, 1);
+     // Serial.print("1 ");
+    }
+    //else{Serial.print("0 ");}
+    sendPulse(IRtransmitPin, 1);
+    delayMicroseconds(IRpulse);
+  }
+  
+  if(myParity == 1){ // Parity
+    sendPulse(IRtransmitPin, 1);
+  }
+  sendPulse(IRtransmitPin, 1);
+  delayMicroseconds(IRpulse);
+  Serial.print("success");
 }
 
 void sendPulse(int pin, int length){ // importing variables like this allows for secondary fire modes etc.
