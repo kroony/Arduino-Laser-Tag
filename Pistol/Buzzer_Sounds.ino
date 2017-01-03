@@ -1,6 +1,6 @@
 
-//noise played when checking how much ammo you have
-void playAmmo(){
+
+void playAmmo(){ //noise played when checking how much ammo you have
   if(ammo == 0){playNoAmmo();}
   else{
     for (byte i = 0; i < ammo; i++) {
@@ -10,7 +10,13 @@ void playAmmo(){
   }
 }
 
-void playReload() {
+void playDead() { //noise is played when die and when actions taken while dead
+  for (int i = 1;i < 254;i++) {
+    playTone((1000+9*i), 2);
+  } 
+}
+
+void playReload() { //noise is played when reloading
   for (int i = 100;i > 0;i--) {
     playTone((3000-9*i), 2);
   } 
@@ -20,19 +26,22 @@ void playReload() {
   } 
 }
 
-//noise is played when character is alive and hit
-void playHit() {
+void playRevive() { //noise is played when revived
+  for (int i = 1;i < 254;i++) { 
+    playTone((3000-9*i), 2);
+  } 
+}
+
+void playHit() { //noise is played when alive and hit
   playTone(500, 500);  
 }
 
-//noise is played when there is no ammo left in the clip
-void playNoAmmo() {
+void playNoAmmo() { //noise is played when there is no ammo left in the clip
   playTone(500, 100);
   playTone(1000, 100);  
 }
 
-//noise is played when there is no clips left
-void playNoClips() {
+void playNoClips() { //noise is played when there is no clips left
   playTone(500, 100);
   delay(100);
   playTone(500, 100);
@@ -40,8 +49,7 @@ void playNoClips() {
   playTone(1000, 100);
 }
 
-//noise is played when the gun is fired
-void playGunShot()  {
+void playGunShot()  { //noise is played when the gun is fired
   int low = 700;
   int high = 1300;
   unsigned long time = millis();
