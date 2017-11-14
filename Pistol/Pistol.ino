@@ -15,6 +15,12 @@
 // If you have code improvements or additions please go to http://duinotag.blogspot.com
 //
 
+//Includes for 16x2 LCD
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+// Set the LCD address to 0x3f for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x3f, 16, 2);
+
 // Digital IO's
 //pin 0
 //pin 1
@@ -36,7 +42,7 @@ byte reloadPin              = 13;     // Push button for reload function. Low = 
 
 // Player and Game details
 byte myTeamID               = 1;      // 1-7 (0 = system message)
-byte myPlayerID             = 1;      // 1 - 31 (0 = team base) 
+byte myPlayerID             = 3;      // 1 - 31 (0 = team base) 
 byte myGameID               = 0;      // Interprited by configureGane subroutine; allows for quick change of game types.
 byte myWeaponID             = 0;      // Deffined by gameType and configureGame subroutine.
 byte myWeaponDamage         = 0;      // Deffined by gameType and configureGame subroutine.
@@ -52,7 +58,7 @@ int check                   = 0;      // Variable used in parity checking
 
 // Stats
 byte ammo                   = 0;      // Current ammunition
-byte clips                  = 0;
+byte clips                  = 0;      // Current Clips (each clip contains max ammo)
 byte hp                     = 0;      // Current hp
 bool alive                  = true;   // set alive
 long shotFired              = 0;      // Count of shots fired, could be used to calc accuracy ect later
@@ -93,10 +99,12 @@ int parity[25];                      // Array must be as large as memory
 
 long historyCount           = 0;
 
-void setup() {
+void setup() {    
   // Serial coms set up to help with debugging.
   Serial.begin(9600);              
   Serial.println("Startup...");
+  
+
   // Pin declarations
   pinMode(triggerPin, INPUT);
   pinMode(reloadPin, INPUT);
@@ -114,14 +122,6 @@ void setup() {
  
   //digitalWrite(triggerPin, HIGH);      // Not really needed if your circuit has the correct pull up resistors already but doesn't harm
   //digitalWrite(reloadPin, HIGH);     // Not really needed if your circuit has the correct pull up resistors already but doesn't harm
- 
-  revive();
- 
-  // Next 4 lines initialise the display LEDs
-  //analogWrite(ammoPin, ((int) ammo));
-  //analogWrite(lifePin, ((int) hp));
-  //lifeDisplay();
-  //ammoDisplay();
 
   //output gun data
   Serial.print("Team: ");           Serial.println(myTeamID);
@@ -136,11 +136,23 @@ void setup() {
   Serial.print(" HP: ");            Serial.println(hp);
   Serial.println("Ready....");
   Serial.println();
+  
+  // initialize the LCD
+  initaliseLCD();
+  updateLCD();
+
+  revive();
+
+  
+  delay(1500);
+  hp--;
+  updateLCD();
+  
 }
 
 
 void loop(){
-  receiveIR();
+  //receiveIR();
   
   if(FIRE != 0) {
     shoot();
@@ -182,6 +194,7 @@ void reload(){
       Serial.println(clips);
       
       playReload();
+      updateLCD();
     }
   }
   
@@ -200,6 +213,8 @@ void shoot() {
     Serial.print(" Ammo:");
     Serial.println(ammo);
 
+    updateLCD();
+    
     digitalWrite(muzzelLedPin, LOW); //turn muzzle flash light off
   }
 
